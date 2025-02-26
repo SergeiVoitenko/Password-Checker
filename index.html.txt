@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Проверка надежности пароля</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .password-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            box-sizing: border-box;
+        }
+        
+        #password-strength {
+            height: 10px;
+            width: 100%;
+            background-color: #eee;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .strength-meter {
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.3s ease-in-out;
+        }
+        
+        .password-info {
+            margin-top: 20px;
+        }
+        
+        .requirement {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .requirement-icon {
+            margin-right: 10px;
+            color: #ddd;
+        }
+        
+        .requirement-text {
+            color: #666;
+        }
+        
+        .met {
+            color: #27ae60;
+        }
+        
+        #strength-text {
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        
+        .weak { color: #e74c3c; }
+        .medium { color: #f39c12; }
+        .strong { color: #27ae60; }
+        .very-strong { color: #27ae60; }
+        
+        .button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            display: inline-block;
+            margin-top: 20px;
+            transition: background-color 0.3s;
+        }
+        
+        .button:hover {
+            background-color: #2980b9;
+        }
+        
+        .feedback {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            background-color: #f8f9fa;
+            border-left: 5px solid #3498db;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Проверка надежности пароля</h1>
+        
+        <input type="password" id="password-input" class="password-input" placeholder="Введите пароль для проверки" autocomplete="off">
+        
+        <div id="password-strength">
+            <div id="strength-meter" class="strength-meter"></div>
+        </div>
+        
+        <div id="strength-text">Сила пароля: не указано</div>
+        
+        <div class="password-info">
+            <h3>Требования к надежному паролю:</h3>
+            <div class="requirement">
+                <span id="length-icon" class="requirement-icon">○</span>
+                <span class="requirement-text">Минимум 8 символов</span>
+            </div>
+            <div class="requirement">
+                <span id="uppercase-icon" class="requirement-icon">○</span>
+                <span class="requirement-text">Минимум 1 заглавная буква</span>
+            </div>
+            <div class="requirement">
+                <span id="lowercase-icon" class="requirement-icon">○</span>
+                <span class="requirement-text">Минимум 1 строчная буква</span>
+            </div>
+            <div class="requirement">
+                <span id="number-icon" class="requirement-icon">○</span>
+                <span class="requirement-text">Минимум 1 цифра</span>
+            </div>
+            <div class="requirement">
+                <span id="special-icon" class="requirement-icon">○</span>
+                <span class="requirement-text">Минимум 1 специальный символ (!@#$%^&*)</span>
+            </div>
+            <div class="requirement">
+                <span id="common-icon" class="requirement-icon">○</span>
+                <span class="requirement-text">Не является распространенным паролем</span>
+            </div>
+        </div>
+        
+        <div id="feedback" class="feedback"></div>
+        
+        <button id="generate-btn" class="button">Сгенерировать надежный пароль</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/zxcvbn/4.4.2/zxcvbn.js"></script>
+    <script>
+        // Список распространенных паролей
+        const commonPasswords = [
+            "password", "123456", "12345678", "qwerty", "abc123", "monkey", "1234567", 
+            "letmein", "trustno1", "dragon", "baseball", "111111", "iloveyou", "master", 
+            "sunshine", "ashley", "bailey", "passw0rd", "shadow", "123123", "654321", 
+            "superman", "qazwsx", "michael", "Football", "welcome", "admin", "pass"
+        ];
+
+        // Получение элементов DOM
+        const passwordInput = document.getElementById('password-input');
+        const strengthMeter = document.getElementById('strength-meter');
+        const strengthText = document.getElementById('strength-text');
+        const generateBtn = document.getElementById('generate-btn');
+        const feedbackElement = document.getElementById('feedback');
+        
+        // Иконки для требований
+        const lengthIcon = document.getElementById('length-icon');
+        const uppercaseIcon = document.getElementById('uppercase-icon');
+        const lowercaseIcon = document.getElementById('lowercase-icon');
+        const numberIcon = document.getElementById('number-icon');
+        const specialIcon = document.getElementById('special-icon');
+        const commonIcon = document.getElementById('common-icon');
+        
+        // Обработчик события ввода пароля
+        passwordInput.addEventListener('input', checkPassword);
+        
+        // Обработчик события нажатия на кнопку генерации пароля
+        generateBtn.addEventListener('click', generatePassword);
+        
+        // Функция проверки пароля
+        function checkPassword() {
+            const password = passwordInput.value;
+            
+            // Проверка требований
+            const hasLength = password.length >= 8;
+            const hasUpperCase = /[A-Z]/.test(password);
+            const hasLowerCase = /[a-z]/.test(password);
+            const hasNumber = /[0-9]/.test(password);
+            const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+            const isCommon = commonPasswords.includes(password.toLowerCase());
+            
+            // Обновление индикаторов для требований
+            updateRequirementIcon(lengthIcon, hasLength);
+            updateRequirementIcon(uppercaseIcon, hasUpperCase);
+            updateRequirementIcon(lowercaseIcon, hasLowerCase);
+            updateRequirementIcon(numberIcon, hasNumber);
+            updateRequirementIcon(specialIcon, hasSpecial);
+            updateRequirementIcon(commonIcon, !isCommon);
+            
+            // Использование библиотеки zxcvbn для оценки надежности
+            let result = { score: 0, feedback: { warning: '', suggestions: [] } };
+            
+            if (password) {
+                result = zxcvbn(password);
+            }
+            
+            // Обновление индикатора надежности
+            updateStrengthMeter(result.score);
+            
+            // Обновление текста обратной связи
+            updateFeedback(result);
+        }
+        
+        // Функция обновления индикатора для требования
+        function updateRequirementIcon(icon, isMet) {
+            if (isMet) {
+                icon.textContent = '✓';
+                icon.classList.add('met');
+            } else {
+                icon.textContent = '○';
+                icon.classList.remove('met');
+            }
+        }
+        
+        // Функция обновления индикатора надежности
+        function updateStrengthMeter(score) {
+            let strengthPercentage = (score / 4) * 100;
+            let strengthColor = '';
+            let strengthLabel = '';
+            
+            switch (score) {
+                case 0:
+                    strengthLabel = 'Очень слабый';
+                    strengthColor = '#e74c3c';
+                    break;
+                case 1:
+                    strengthLabel = 'Слабый';
+                    strengthColor = '#e74c3c';
+                    break;
+                case 2:
+                    strengthLabel = 'Средний';
+                    strengthColor = '#f39c12';
+                    break;
+                case 3:
+                    strengthLabel = 'Надежный';
+                    strengthColor = '#27ae60';
+                    break;
+                case 4:
+                    strengthLabel = 'Очень надежный';
+                    strengthColor = '#27ae60';
+                    break;
+            }
+            
+            strengthMeter.style.width = strengthPercentage + '%';
+            strengthMeter.style.backgroundColor = strengthColor;
+            strengthText.textContent = 'Сила пароля: ' + strengthLabel;
+            strengthText.className = ''; // Сброс классов
+            
+            if (score <= 1) {
+                strengthText.classList.add('weak');
+            } else if (score === 2) {
+                strengthText.classList.add('medium');
+            } else if (score === 3) {
+                strengthText.classList.add('strong');
+            } else if (score === 4) {
+                strengthText.classList.add('very-strong');
+            }
+        }
+        
+        // Функция обновления обратной связи
+        function updateFeedback(result) {
+            feedbackElement.style.display = 'block';
+            
+            let feedbackText = '';
+            
+            if (result.feedback.warning) {
+                feedbackText += '<strong>Предупреждение:</strong> ' + translateWarning(result.feedback.warning) + '<br>';
+            }
+            
+            if (result.feedback.suggestions.length > 0) {
+                feedbackText += '<strong>Рекомендации:</strong><ul>';
+                result.feedback.suggestions.forEach(suggestion => {
+                    feedbackText += '<li>' + translateSuggestion(suggestion) + '</li>';
+                });
+                feedbackText += '</ul>';
+            }
+            
+            if (!feedbackText) {
+                if (result.score >= 3) {
+                    feedbackText = 'Отличный пароль! Он будет трудно взломать.';
+                } else if (passwordInput.value) {
+                    feedbackText = 'Рекомендуется усилить пароль, следуя указанным выше требованиям.';
+                } else {
+                    feedbackElement.style.display = 'none';
+                }
+            }
+            
+            feedbackElement.innerHTML = feedbackText;
+        }
+        
+        // Перевод предупреждений zxcvbn
+        function translateWarning(warning) {
+            const translations = {
+                'Straight rows of keys are easy to guess': 'Последовательный ряд клавиш легко угадать',
+                'Short keyboard patterns are easy to guess': 'Короткие клавиатурные шаблоны легко угадать',
+                'Repeats like "aaa" are easy to guess': 'Повторения вроде "aaa" легко угадать',
+                'Repeats like "abcabcabc" are only slightly harder to guess than "abc"': 'Повторения вроде "abcabcabc" лишь немного сложнее угадать, чем "abc"',
+                'Sequences like "abc" or "6543" are easy to guess': 'Последовательности вроде "abc" или "6543" легко угадать',
+                'Recent years are easy to guess': 'Недавние годы легко угадать',
+                'Dates are often easy to guess': 'Даты часто легко угадать',
+                'This is a top-10 common password': 'Это один из 10 самых распространенных паролей',
+                'This is a top-100 common password': 'Это один из 100 самых распространенных паролей',
+                'This is a very common password': 'Это очень распространенный пароль',
+                'This is similar to a commonly used password': 'Это похоже на часто используемый пароль',
+                'A word by itself is easy to guess': 'Отдельное слово легко угадать',
+                'Names and surnames by themselves are easy to guess': 'Имена и фамилии сами по себе легко угадать',
+                'Common names and surnames are easy to guess': 'Распространенные имена и фамилии легко угадать'
+            };
+            
+            return translations[warning] || warning;
+        }
+        
+        // Перевод рекомендаций zxcvbn
+        function translateSuggestion(suggestion) {
+            const translations = {
+                'Use a longer keyboard pattern with more turns': 'Используйте более длинный клавиатурный шаблон с большим количеством поворотов',
+                'Use a longer password': 'Используйте более длинный пароль',
+                'Avoid repeated words and characters': 'Избегайте повторяющихся слов и символов',
+                'Avoid sequences': 'Избегайте последовательностей',
+                'Avoid recent years': 'Избегайте недавних годов',
+                'Avoid years that are associated with you': 'Избегайте лет, которые связаны с вами',
+                'Avoid dates and years that are associated with you': 'Избегайте дат и лет, которые связаны с вами',
+                'Add another word or two. Uncommon words are better.': 'Добавьте еще одно или два слова. Необычные слова лучше.',
+                'Capitalization doesn\'t help very much': 'Использование заглавных букв не очень помогает',
+                'All-uppercase is almost as easy to guess as all-lowercase': 'Все заглавные буквы почти так же легко угадать, как и все строчные',
+                'Reversed words aren\'t much harder to guess': 'Обратные слова ненамного сложнее угадать',
+                'Predictable substitutions like \'@\' instead of \'a\' don\'t help very much': 'Предсказуемые замены, такие как \'@\' вместо \'a\', не очень помогают'
+            };
+            
+            return translations[suggestion] || suggestion;
+        }
+        
+        // Функция генерации случайного пароля
+        function generatePassword() {
+            const length = 12; // Длина генерируемого пароля
+            const uppercaseChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            const lowercaseChars = 'abcdefghijklmnopqrstuvwxyz';
+            const numberChars = '0123456789';
+            const specialChars = '!@#$%^&*()-_=+[]{}|;:,.<>?';
+            
+            const allChars = uppercaseChars + lowercaseChars + numberChars + specialChars;
+            
+            // Генерация пароля
+            let password = '';
+            
+            // Добавление по одному символу каждого типа
+            password += uppercaseChars.charAt(Math.floor(Math.random() * uppercaseChars.length));
+            password += lowercaseChars.charAt(Math.floor(Math.random() * lowercaseChars.length));
+            password += numberChars.charAt(Math.floor(Math.random() * numberChars.length));
+            password += specialChars.charAt(Math.floor(Math.random() * specialChars.length));
+            
+            // Добавление оставшихся символов
+            for (let i = 4; i < length; i++) {
+                password += allChars.charAt(Math.floor(Math.random() * allChars.length));
+            }
+            
+            // Перемешивание пароля
+            password = password.split('').sort(() => 0.5 - Math.random()).join('');
+            
+            // Установка сгенерированного пароля в поле ввода и проверка его
+            passwordInput.value = password;
+            checkPassword();
+        }
+        
+        // Инициализация проверки пароля
+        checkPassword();
+    </script>
+</body>
+</html>
