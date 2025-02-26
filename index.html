@@ -27,14 +27,30 @@
             margin-bottom: 30px;
         }
         
+        .password-input-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        
         .password-input {
             width: 100%;
             padding: 12px;
             border: 1px solid #ddd;
             border-radius: 4px;
             font-size: 16px;
-            margin-bottom: 20px;
             box-sizing: border-box;
+        }
+        
+        .toggle-password {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            background: none;
+            border: none;
+            font-size: 16px;
+            color: #666;
         }
         
         #password-strength {
@@ -101,6 +117,20 @@
             background-color: #2980b9;
         }
         
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .copy-button {
+            background-color: #27ae60;
+        }
+        
+        .copy-button:hover {
+            background-color: #219653;
+        }
+        
         .feedback {
             margin-top: 20px;
             padding: 15px;
@@ -115,7 +145,10 @@
     <div class="container">
         <h1>Проверка надежности пароля</h1>
         
-        <input type="password" id="password-input" class="password-input" placeholder="Введите пароль для проверки" autocomplete="off">
+        <div class="password-input-container">
+            <input type="password" id="password-input" class="password-input" placeholder="Введите пароль для проверки" autocomplete="off">
+            <button type="button" id="toggle-password" class="toggle-password">👁️</button>
+        </div>
         
         <div id="password-strength">
             <div id="strength-meter" class="strength-meter"></div>
@@ -153,7 +186,10 @@
         
         <div id="feedback" class="feedback"></div>
         
-        <button id="generate-btn" class="button">Сгенерировать надежный пароль</button>
+        <div class="action-buttons">
+            <button id="generate-btn" class="button">Сгенерировать надежный пароль</button>
+            <button id="copy-btn" class="button copy-button">Копировать пароль</button>
+        </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/zxcvbn/4.4.2/zxcvbn.js"></script>
@@ -172,6 +208,8 @@
         const strengthText = document.getElementById('strength-text');
         const generateBtn = document.getElementById('generate-btn');
         const feedbackElement = document.getElementById('feedback');
+        const togglePasswordBtn = document.getElementById('toggle-password');
+        const copyBtn = document.getElementById('copy-btn');
         
         // Иконки для требований
         const lengthIcon = document.getElementById('length-icon');
@@ -186,6 +224,41 @@
         
         // Обработчик события нажатия на кнопку генерации пароля
         generateBtn.addEventListener('click', generatePassword);
+        
+        // Обработчик события нажатия на кнопку показа/скрытия пароля
+        togglePasswordBtn.addEventListener('click', togglePasswordVisibility);
+        
+        // Обработчик события нажатия на кнопку копирования пароля
+        copyBtn.addEventListener('click', copyPassword);
+        
+        // Функция показа/скрытия пароля
+        function togglePasswordVisibility() {
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                togglePasswordBtn.textContent = '🔒';
+            } else {
+                passwordInput.type = 'password';
+                togglePasswordBtn.textContent = '👁️';
+            }
+        }
+        
+        // Функция копирования пароля
+        function copyPassword() {
+            if (passwordInput.value) {
+                navigator.clipboard.writeText(passwordInput.value)
+                    .then(() => {
+                        // Временное изменение текста кнопки для обратной связи
+                        const originalText = copyBtn.textContent;
+                        copyBtn.textContent = 'Скопировано!';
+                        setTimeout(() => {
+                            copyBtn.textContent = originalText;
+                        }, 2000);
+                    })
+                    .catch(err => {
+                        console.error('Не удалось скопировать пароль: ', err);
+                    });
+            }
+        }
         
         // Функция проверки пароля
         function checkPassword() {
@@ -379,108 +452,114 @@
             
             // Установка сгенерированного пароля в поле ввода и проверка его
             passwordInput.value = password;
+            
+            // Если пароль сгенерирован, автоматически показываем его
+            if (passwordInput.type === 'password') {
+                togglePasswordVisibility();
+            }
+            
             checkPassword();
         }
 
         // Функция для проверки пароля через API Have I Been Pwned
-async function checkPwnedPassword(password) {
-    try {
-        // Получение SHA-1 хеша пароля
-        const encoder = new TextEncoder();
-        const data = encoder.encode(password);
-        const hashBuffer = await crypto.subtle.digest('SHA-1', data);
-        
-        // Преобразование хеша в шестнадцатеричный формат
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
-        
-        // Разделяем хеш на префикс (первые 5 символов) и остаток
-        const prefix = hashHex.substring(0, 5);
-        const suffix = hashHex.substring(5);
-        
-        // Отправляем запрос к API Have I Been Pwned
-        const response = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`);
-        if (!response.ok) {
-            throw new Error('Ошибка при запросе к API Have I Been Pwned');
-        }
-        
-        const text = await response.text();
-        const hashes = text.split('\r\n');
-        
-        // Ищем наш суффикс хеша в ответе
-        for (const hash of hashes) {
-            const [hashSuffix, count] = hash.split(':');
-            if (hashSuffix === suffix) {
-                return parseInt(count, 10); // Количество утечек
+        async function checkPwnedPassword(password) {
+            try {
+                // Получение SHA-1 хеша пароля
+                const encoder = new TextEncoder();
+                const data = encoder.encode(password);
+                const hashBuffer = await crypto.subtle.digest('SHA-1', data);
+                
+                // Преобразование хеша в шестнадцатеричный формат
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+                
+                // Разделяем хеш на префикс (первые 5 символов) и остаток
+                const prefix = hashHex.substring(0, 5);
+                const suffix = hashHex.substring(5);
+                
+                // Отправляем запрос к API Have I Been Pwned
+                const response = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`);
+                if (!response.ok) {
+                    throw new Error('Ошибка при запросе к API Have I Been Pwned');
+                }
+                
+                const text = await response.text();
+                const hashes = text.split('\r\n');
+                
+                // Ищем наш суффикс хеша в ответе
+                for (const hash of hashes) {
+                    const [hashSuffix, count] = hash.split(':');
+                    if (hashSuffix === suffix) {
+                        return parseInt(count, 10); // Количество утечек
+                    }
+                }
+                
+                return 0; // Пароль не найден в утечках
+            } catch (error) {
+                console.error('Ошибка при проверке пароля:', error);
+                return -1; // Ошибка при проверке
             }
         }
-        
-        return 0; // Пароль не найден в утечках
-    } catch (error) {
-        console.error('Ошибка при проверке пароля:', error);
-        return -1; // Ошибка при проверке
-    }
-}
 
-// Добавляем новый элемент для отображения результата проверки
-const passwordRequirements = document.querySelector('.password-info');
-const pwnedCheckElement = document.createElement('div');
-pwnedCheckElement.classList.add('requirement');
-pwnedCheckElement.innerHTML = `
-    <span id="pwned-icon" class="requirement-icon">○</span>
-    <span class="requirement-text">Не найден в утечках данных</span>
-`;
-passwordRequirements.appendChild(pwnedCheckElement);
+        // Добавляем новый элемент для отображения результата проверки
+        const passwordRequirements = document.querySelector('.password-info');
+        const pwnedCheckElement = document.createElement('div');
+        pwnedCheckElement.classList.add('requirement');
+        pwnedCheckElement.innerHTML = `
+            <span id="pwned-icon" class="requirement-icon">○</span>
+            <span class="requirement-text">Не найден в утечках данных</span>
+        `;
+        passwordRequirements.appendChild(pwnedCheckElement);
 
-const pwnedIcon = document.getElementById('pwned-icon');
+        const pwnedIcon = document.getElementById('pwned-icon');
 
-// Обновляем функцию проверки пароля
-const originalCheckPassword = checkPassword;
-checkPassword = async function() {
-    originalCheckPassword();
-    
-    const password = passwordInput.value;
-    
-    if (password.length >= 1) {
-        pwnedIcon.textContent = '⏳'; // Индикатор загрузки
-        
-        const count = await checkPwnedPassword(password);
-        
-        if (count > 0) {
-            pwnedIcon.textContent = '✗';
-            pwnedIcon.classList.remove('met');
-            pwnedIcon.nextElementSibling.textContent = `Найден в ${count} утечках данных!`;
+        // Обновляем функцию проверки пароля
+        const originalCheckPassword = checkPassword;
+        checkPassword = async function() {
+            originalCheckPassword();
             
-            // Добавляем предупреждение в обратную связь
-            const pwdFeedback = document.createElement('p');
-            pwdFeedback.innerHTML = `<strong>Внимание:</strong> Этот пароль найден в ${count} утечках данных. Рекомендуется использовать другой пароль.`;
+            const password = passwordInput.value;
             
-            const existingPwnedWarning = Array.from(feedbackElement.querySelectorAll('p')).find(p => p.textContent.includes('утечках данных'));
-            if (!existingPwnedWarning) {
-                feedbackElement.appendChild(pwdFeedback);
-                feedbackElement.style.display = 'block';
+            if (password.length >= 1) {
+                pwnedIcon.textContent = '⏳'; // Индикатор загрузки
+                
+                const count = await checkPwnedPassword(password);
+                
+                if (count > 0) {
+                    pwnedIcon.textContent = '✗';
+                    pwnedIcon.classList.remove('met');
+                    pwnedIcon.nextElementSibling.textContent = `Найден в ${count} утечках данных!`;
+                    
+                    // Добавляем предупреждение в обратную связь
+                    const pwdFeedback = document.createElement('p');
+                    pwdFeedback.innerHTML = `<strong>Внимание:</strong> Этот пароль найден в ${count} утечках данных. Рекомендуется использовать другой пароль.`;
+                    
+                    const existingPwnedWarning = Array.from(feedbackElement.querySelectorAll('p')).find(p => p.textContent.includes('утечках данных'));
+                    if (!existingPwnedWarning) {
+                        feedbackElement.appendChild(pwdFeedback);
+                        feedbackElement.style.display = 'block';
+                    }
+                } else if (count === 0) {
+                    pwnedIcon.textContent = '✓';
+                    pwnedIcon.classList.add('met');
+                    pwnedIcon.nextElementSibling.textContent = 'Не найден в утечках данных';
+                    
+                    // Удаляем предупреждение если оно есть
+                    const existingPwnedWarning = Array.from(feedbackElement.querySelectorAll('p')).find(p => p.textContent.includes('утечках данных'));
+                    if (existingPwnedWarning) {
+                        feedbackElement.removeChild(existingPwnedWarning);
+                    }
+                } else {
+                    pwnedIcon.textContent = '!';
+                    pwnedIcon.classList.remove('met');
+                    pwnedIcon.nextElementSibling.textContent = 'Не удалось проверить в базе утечек';
+                }
+            } else {
+                pwnedIcon.textContent = '○';
+                pwnedIcon.classList.remove('met');
+                pwnedIcon.nextElementSibling.textContent = 'Не найден в утечках данных';
             }
-        } else if (count === 0) {
-            pwnedIcon.textContent = '✓';
-            pwnedIcon.classList.add('met');
-            pwnedIcon.nextElementSibling.textContent = 'Не найден в утечках данных';
-            
-            // Удаляем предупреждение если оно есть
-            const existingPwnedWarning = Array.from(feedbackElement.querySelectorAll('p')).find(p => p.textContent.includes('утечках данных'));
-            if (existingPwnedWarning) {
-                feedbackElement.removeChild(existingPwnedWarning);
-            }
-        } else {
-            pwnedIcon.textContent = '!';
-            pwnedIcon.classList.remove('met');
-            pwnedIcon.nextElementSibling.textContent = 'Не удалось проверить в базе утечек';
-        }
-    } else {
-        pwnedIcon.textContent = '○';
-        pwnedIcon.classList.remove('met');
-        pwnedIcon.nextElementSibling.textContent = 'Не найден в утечках данных';
-    }
-};
+        };
         
         // Инициализация проверки пароля
         checkPassword();
