@@ -5,190 +5,366 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Проверка надежности пароля</title>
     <style>
+        :root {
+            --primary-color: #6d28d9;
+            --secondary-color: #7c3aed;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --bg-color: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-color: #374151;
+            --border-radius: 12px;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            max-width: 800px;
+            font-family: 'Montserrat', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 100%;
             margin: 0 auto;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+        
+        .page-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
             padding: 20px;
-            background-color: #f5f5f5;
-            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e7eb 100%);
         }
         
         .container {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            padding: 30px;
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+            padding: 35px;
+            width: 100%;
+            max-width: 500px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
         }
         
         h1 {
-            color: #2c3e50;
+            color: var(--primary-color);
             text-align: center;
             margin-bottom: 30px;
+            font-size: 28px;
+            font-weight: 700;
         }
         
         .password-input-container {
             position: relative;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
         }
         
         .password-input {
             width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 14px 45px 14px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: var(--border-radius);
             font-size: 16px;
-            box-sizing: border-box;
+            transition: all 0.3s ease;
+            background-color: #f8fafc;
+        }
+        
+        .password-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(109, 40, 217, 0.2);
         }
         
         .toggle-password {
             position: absolute;
-            right: 10px;
+            right: 15px;
             top: 50%;
             transform: translateY(-50%);
             cursor: pointer;
             background: none;
             border: none;
-            font-size: 16px;
-            color: #666;
+            font-size: 20px;
+            color: #64748b;
+            transition: color 0.3s;
+        }
+        
+        .toggle-password:hover {
+            color: var(--primary-color);
+        }
+        
+        .strength-container {
+            margin-bottom: 20px;
         }
         
         #password-strength {
             height: 10px;
             width: 100%;
-            background-color: #eee;
-            border-radius: 5px;
-            margin-bottom: 10px;
+            background-color: #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 12px;
         }
         
         .strength-meter {
             height: 100%;
-            border-radius: 5px;
-            transition: width 0.3s ease-in-out;
+            border-radius: 10px;
+            transition: width 0.4s ease-in-out, background-color 0.4s;
         }
+        
+        #strength-text {
+            font-weight: 600;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 16px;
+            transition: color 0.3s;
+        }
+        
+        .weak { color: var(--danger-color); }
+        .medium { color: var(--warning-color); }
+        .strong { color: var(--success-color); }
+        .very-strong { color: var(--success-color); }
         
         .password-info {
             margin-top: 20px;
+            padding: 20px;
+            background-color: #f8fafc;
+            border-radius: var(--border-radius);
+        }
+        
+        .password-info h3 {
+            margin-bottom: 15px;
+            font-size: 18px;
+            color: var(--primary-color);
+        }
+        
+        .requirements-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 10px;
         }
         
         .requirement {
-            margin-bottom: 10px;
+            margin-bottom: 12px;
             display: flex;
             align-items: center;
+            transition: transform 0.2s;
+        }
+        
+        .requirement:hover {
+            transform: translateX(5px);
         }
         
         .requirement-icon {
             margin-right: 10px;
-            color: #ddd;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: #f1f5f9;
+            color: #94a3b8;
         }
         
         .requirement-text {
-            color: #666;
+            color: #64748b;
+            font-size: 14px;
         }
         
-        .met {
-            color: #27ae60;
-        }
-        
-        #strength-text {
-            font-weight: bold;
-            margin-bottom: 20px;
-        }
-        
-        .weak { color: #e74c3c; }
-        .medium { color: #f39c12; }
-        .strong { color: #27ae60; }
-        .very-strong { color: #27ae60; }
-        
-        .button {
-            background-color: #3498db;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            display: inline-block;
-            margin-top: 20px;
-            transition: background-color 0.3s;
-        }
-        
-        .button:hover {
-            background-color: #2980b9;
-        }
-        
-        .action-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        
-        .copy-button {
-            background-color: #27ae60;
-        }
-        
-        .copy-button:hover {
-            background-color: #219653;
+        .requirement-icon.met {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--success-color);
         }
         
         .feedback {
             margin-top: 20px;
             padding: 15px;
-            border-radius: 4px;
-            background-color: #f8f9fa;
-            border-left: 5px solid #3498db;
+            border-radius: var(--border-radius);
+            background-color: #f0f9ff;
+            border-left: 5px solid var(--primary-color);
+            font-size: 14px;
             display: none;
+        }
+        
+        .feedback ul {
+            margin-top: 8px;
+            padding-left: 20px;
+        }
+        
+        .feedback li {
+            margin-bottom: 5px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+        }
+        
+        .button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: 16px;
+            flex: 1;
+            min-width: 160px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .button:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .button:active {
+            transform: translateY(0);
+        }
+        
+        .copy-button {
+            background-color: var(--success-color);
+        }
+        
+        .copy-button:hover {
+            background-color: #0ea572;
+        }
+        
+        /* Медиа-запросы для адаптивности */
+        @media (max-width: 600px) {
+            .container {
+                padding: 25px 20px;
+                border-radius: 0;
+            }
+            
+            .page-container {
+                padding: 0;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .button {
+                width: 100%;
+            }
+            
+            .requirements-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Анимации */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .pulse {
+            animation: pulse 1s infinite;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Проверка надежности пароля</h1>
-        
-        <div class="password-input-container">
-            <input type="password" id="password-input" class="password-input" placeholder="Введите пароль для проверки" autocomplete="off">
-            <button type="button" id="toggle-password" class="toggle-password">👁️</button>
-        </div>
-        
-        <div id="password-strength">
-            <div id="strength-meter" class="strength-meter"></div>
-        </div>
-        
-        <div id="strength-text">Сила пароля: не указано</div>
-        
-        <div class="password-info">
-            <h3>Требования к надежному паролю:</h3>
-            <div class="requirement">
-                <span id="length-icon" class="requirement-icon">○</span>
-                <span class="requirement-text">Минимум 8 символов</span>
+    <div class="page-container">
+        <div class="container">
+            <h1>Проверка надежности пароля</h1>
+            
+            <div class="password-input-container">
+                <input type="password" id="password-input" class="password-input" placeholder="Введите пароль для проверки" autocomplete="off">
+                <button type="button" id="toggle-password" class="toggle-password">👁️</button>
             </div>
-            <div class="requirement">
-                <span id="uppercase-icon" class="requirement-icon">○</span>
-                <span class="requirement-text">Минимум 1 заглавная буква</span>
+            
+            <div class="strength-container">
+                <div id="password-strength">
+                    <div id="strength-meter" class="strength-meter"></div>
+                </div>
+                
+                <div id="strength-text">Сила пароля: не указано</div>
             </div>
-            <div class="requirement">
-                <span id="lowercase-icon" class="requirement-icon">○</span>
-                <span class="requirement-text">Минимум 1 строчная буква</span>
+            
+            <div class="password-info">
+                <h3>Требования к надежному паролю:</h3>
+                <div class="requirements-grid">
+                    <div class="requirement">
+                        <span id="length-icon" class="requirement-icon">○</span>
+                        <span class="requirement-text">Минимум 8 символов</span>
+                    </div>
+                    <div class="requirement">
+                        <span id="uppercase-icon" class="requirement-icon">○</span>
+                        <span class="requirement-text">Минимум 1 заглавная буква</span>
+                    </div>
+                    <div class="requirement">
+                        <span id="lowercase-icon" class="requirement-icon">○</span>
+                        <span class="requirement-text">Минимум 1 строчная буква</span>
+                    </div>
+                    <div class="requirement">
+                        <span id="number-icon" class="requirement-icon">○</span>
+                        <span class="requirement-text">Минимум 1 цифра</span>
+                    </div>
+                    <div class="requirement">
+                        <span id="special-icon" class="requirement-icon">○</span>
+                        <span class="requirement-text">Минимум 1 спец. символ</span>
+                    </div>
+                    <div class="requirement">
+                        <span id="common-icon" class="requirement-icon">○</span>
+                        <span class="requirement-text">Не распространенный пароль</span>
+                    </div>
+                    <div class="requirement">
+                        <span id="pwned-icon" class="requirement-icon">○</span>
+                        <span class="requirement-text">Не найден в утечках данных</span>
+                    </div>
+                </div>
             </div>
-            <div class="requirement">
-                <span id="number-icon" class="requirement-icon">○</span>
-                <span class="requirement-text">Минимум 1 цифра</span>
+            
+            <div id="feedback" class="feedback"></div>
+            
+            <div class="action-buttons">
+                <button id="generate-btn" class="button">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+                    </svg>
+                    Сгенерировать пароль
+                </button>
+                <button id="copy-btn" class="button copy-button">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+                        <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
+                    </svg>
+                    Копировать пароль
+                </button>
             </div>
-            <div class="requirement">
-                <span id="special-icon" class="requirement-icon">○</span>
-                <span class="requirement-text">Минимум 1 специальный символ (!@#$%^&*)</span>
-            </div>
-            <div class="requirement">
-                <span id="common-icon" class="requirement-icon">○</span>
-                <span class="requirement-text">Не является распространенным паролем</span>
-            </div>
-        </div>
-        
-        <div id="feedback" class="feedback"></div>
-        
-        <div class="action-buttons">
-            <button id="generate-btn" class="button">Сгенерировать надежный пароль</button>
-            <button id="copy-btn" class="button copy-button">Копировать пароль</button>
         </div>
     </div>
 
@@ -218,12 +394,19 @@
         const numberIcon = document.getElementById('number-icon');
         const specialIcon = document.getElementById('special-icon');
         const commonIcon = document.getElementById('common-icon');
+        const pwnedIcon = document.getElementById('pwned-icon');
         
         // Обработчик события ввода пароля
         passwordInput.addEventListener('input', checkPassword);
         
         // Обработчик события нажатия на кнопку генерации пароля
-        generateBtn.addEventListener('click', generatePassword);
+        generateBtn.addEventListener('click', function() {
+            generateBtn.classList.add('pulse');
+            generatePassword();
+            setTimeout(() => {
+                generateBtn.classList.remove('pulse');
+            }, 1000);
+        });
         
         // Обработчик события нажатия на кнопку показа/скрытия пароля
         togglePasswordBtn.addEventListener('click', togglePasswordVisibility);
@@ -249,9 +432,11 @@
                     .then(() => {
                         // Временное изменение текста кнопки для обратной связи
                         const originalText = copyBtn.textContent;
-                        copyBtn.textContent = 'Скопировано!';
+                        copyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/></svg> Скопировано!';
+                        copyBtn.classList.add('pulse');
                         setTimeout(() => {
-                            copyBtn.textContent = originalText;
+                            copyBtn.innerHTML = originalText;
+                            copyBtn.classList.remove('pulse');
                         }, 2000);
                     })
                     .catch(err => {
@@ -261,7 +446,7 @@
         }
         
         // Функция проверки пароля
-        function checkPassword() {
+        async function checkPassword() {
             const password = passwordInput.value;
             
             // Проверка требований
@@ -279,6 +464,47 @@
             updateRequirementIcon(numberIcon, hasNumber);
             updateRequirementIcon(specialIcon, hasSpecial);
             updateRequirementIcon(commonIcon, !isCommon);
+            
+            // Проверка на утечки данных
+            if (password.length >= 1) {
+                pwnedIcon.textContent = '⏳';
+                
+                const count = await checkPwnedPassword(password);
+                
+                if (count > 0) {
+                    pwnedIcon.textContent = '✕';
+                    pwnedIcon.classList.remove('met');
+                    pwnedIcon.nextElementSibling.textContent = `Найден в ${count} утечках данных!`;
+                    
+                    // Добавляем предупреждение в обратную связь
+                    const pwdFeedback = document.createElement('p');
+                    pwdFeedback.innerHTML = `<strong>Внимание:</strong> Этот пароль найден в ${count} утечках данных. Рекомендуется использовать другой пароль.`;
+                    
+                    const existingPwnedWarning = Array.from(feedbackElement.querySelectorAll('p')).find(p => p.textContent.includes('утечках данных'));
+                    if (!existingPwnedWarning) {
+                        feedbackElement.appendChild(pwdFeedback);
+                        feedbackElement.style.display = 'block';
+                    }
+                } else if (count === 0) {
+                    pwnedIcon.textContent = '✓';
+                    pwnedIcon.classList.add('met');
+                    pwnedIcon.nextElementSibling.textContent = 'Не найден в утечках данных';
+                    
+                    // Удаляем предупреждение если оно есть
+                    const existingPwnedWarning = Array.from(feedbackElement.querySelectorAll('p')).find(p => p.textContent.includes('утечках данных'));
+                    if (existingPwnedWarning) {
+                        feedbackElement.removeChild(existingPwnedWarning);
+                    }
+                } else {
+                    pwnedIcon.textContent = '!';
+                    pwnedIcon.classList.remove('met');
+                    pwnedIcon.nextElementSibling.textContent = 'Не удалось проверить в базе утечек';
+                }
+            } else {
+                pwnedIcon.textContent = '○';
+                pwnedIcon.classList.remove('met');
+                pwnedIcon.nextElementSibling.textContent = 'Не найден в утечках данных';
+            }
             
             // Использование библиотеки zxcvbn для оценки надежности
             let result = { score: 0, feedback: { warning: '', suggestions: [] } };
@@ -314,23 +540,23 @@
             switch (score) {
                 case 0:
                     strengthLabel = 'Очень слабый';
-                    strengthColor = '#e74c3c';
+                    strengthColor = 'var(--danger-color)';
                     break;
                 case 1:
                     strengthLabel = 'Слабый';
-                    strengthColor = '#e74c3c';
+                    strengthColor = 'var(--danger-color)';
                     break;
                 case 2:
                     strengthLabel = 'Средний';
-                    strengthColor = '#f39c12';
+                    strengthColor = 'var(--warning-color)';
                     break;
                 case 3:
                     strengthLabel = 'Надежный';
-                    strengthColor = '#27ae60';
+                    strengthColor = 'var(--success-color)';
                     break;
                 case 4:
                     strengthLabel = 'Очень надежный';
-                    strengthColor = '#27ae60';
+                    strengthColor = 'var(--success-color)';
                     break;
             }
             
@@ -425,7 +651,7 @@
         
         // Функция генерации случайного пароля
         function generatePassword() {
-            const length = 12; // Длина генерируемого пароля
+            const length = 14; // Увеличенная длина для большей надежности
             const uppercaseChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
             const lowercaseChars = 'abcdefghijklmnopqrstuvwxyz';
             const numberChars = '0123456789';
