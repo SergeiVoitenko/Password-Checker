@@ -206,29 +206,47 @@
         
         /* Темный режим, если пользователь предпочитает */
         @media (prefers-color-scheme: dark) {
-            :root {
-                --primary-color: #e0e0e0;
-                --secondary-color: #bbb;
-                --accent-color: #fff;
-                --background-color: #121212;
-                --container-bg: #1e1e1e;
-                --weak-color: #999;
-                --medium-color: #bbb;
-                --strong-color: #fff;
-                --border-color: #444;
-            }
-            
-            #password-strength {
-                background-color: #333;
-            }
-            
-            .feedback {
-                background-color: rgba(255, 255, 255, 0.05);
-                border-left: 5px solid #fff;
-            }
-            
-            .password-info {
-                background-color: rgba(255, 255, 255, 0.05);
+    :root {
+        --primary-color: #e0e0e0;
+        --secondary-color: #bbb;
+        --accent-color: #fff;
+        --background-color: #121212;
+        --container-bg: #1e1e1e;
+        --weak-color: #999;
+        --medium-color: #bbb;
+        --strong-color: #fff;
+        --border-color: #444;
+    }
+    
+    #password-strength {
+        background-color: #333;
+    }
+    
+    .feedback {
+        background-color: rgba(255, 255, 255, 0.05);
+        border-left: 5px solid #fff;
+    }
+    
+    .password-info {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+    
+    /* Добавьте это правило для кнопок в темном режиме */
+    .button {
+        color: #fff;
+        background-color: #444;
+    }
+    
+    .button:hover {
+        background-color: #555;
+    }
+    
+    .copy-button {
+        background-color: #333;
+    }
+    
+    .copy-button:hover {
+        background-color: #444;
             }
         }
     </style>
