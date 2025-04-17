@@ -1,9 +1,24 @@
-// Список поширених паролів
+// Расширенный список поширених паролів
 const commonPasswords = [
+    // Английские распространенные пароли
     "password", "123456", "12345678", "qwerty", "abc123", "monkey", "1234567", 
     "letmein", "trustno1", "dragon", "baseball", "111111", "iloveyou", "master", 
     "sunshine", "ashley", "bailey", "passw0rd", "shadow", "123123", "654321", 
-    "superman", "qazwsx", "michael", "Football", "welcome", "admin", "pass"
+    "superman", "qazwsx", "michael", "Football", "welcome", "admin", "pass",
+    // Украинские/русские распространенные имена и шаблоны
+    "сережа", "сергей", "серега", "admin123", "qwerty123", "password123", "111222", "222333",
+    "qwe123", "андрей", "александр", "дмитрий", "максим", "иван", "михаил", "олександр",
+    "дмитро", "микола", "тарас", "богдан", "віталій", "олег", "вадим", "василь",
+    // Распространенные конструкции
+    "привет", "пароль", "секрет", "любовь", "друг", "кошка", "собака", "машина",
+    "работа", "дом", "семья", "ребенок", "солнце", "звезда", "луна", "небо",
+    // Популярные имена с числами
+    "сережа123", "андрей123", "максим123", "иван123", "саша123", "дима123",
+    // Годы
+    "12345", "123456789", "2020", "2021", "2022", "2023", "2024", "2025",
+    // Дополнительно
+    "password1", "11111111", "987654321", "qwerty1", "1q2w3e", "1q2w3e4r", "1qaz2wsx",
+    "абвгд", "йцукен", "фыва", "ячсм", "zxcvbn", "asdfgh", "qwertyuiop", "asdfghjkl"
 ];
 
 // Отримання елементів DOM
@@ -102,6 +117,72 @@ function checkPassword() {
     
     if (password) {
         result = zxcvbn(password);
+        
+        // Додаткова перевірка на популярні імена та комбінації імені з цифрами
+        const containsCommonName = /^[А-ЯІЇЄҐA-Z][а-яіїєґa-z]{2,}[0-9]*$/.test(password);
+        
+        // Перевірка на послідовності чисел (123, 321, 789 тощо)
+        const hasSequentialNumbers = /(?:012|123|234|345|456|567|678|789|987|876|765|654|543|432|321|210)/.test(password);
+        
+        // Перевірка на повторювані числа (111, 222 тощо)
+        const hasRepeatedNumbers = /([0-9])\1{2,}/.test(password);
+        
+        // Перевірка на типові шаблони "им'я + цифри"
+        const hasNameNumberPattern = /^[А-ЯІЇЄҐA-Z][а-яіїєґa-z]{2,}[0-9]{1,6}$/.test(password);
+        
+        // Знизити оцінку якщо не виконуються всі основні вимоги
+        const allBasicRequirementsMet = hasLength && hasUpperCase && hasLowerCase && hasNumber && hasSpecial && !isCommon;
+        
+        // Модифікація оцінки на основі додаткових факторів
+        if (containsCommonName) {
+            result.score = Math.max(0, result.score - 1);
+            if (!result.feedback.warning) {
+                result.feedback.warning = "Пароль містить розпізнаване ім'я";
+            }
+            result.feedback.suggestions.push("Уникайте використання імен у паролях");
+        }
+        
+        if (hasSequentialNumbers) {
+            result.score = Math.max(0, result.score - 1);
+            if (!result.feedback.warning) {
+                result.feedback.warning = "Пароль містить послідовність чисел";
+            }
+            result.feedback.suggestions.push("Уникайте послідовних чисел (123, 789 тощо)");
+        }
+        
+        if (hasRepeatedNumbers) {
+            result.score = Math.max(0, result.score - 1);
+            if (!result.feedback.warning) {
+                result.feedback.warning = "Пароль містить повторювані числа";
+            }
+            result.feedback.suggestions.push("Уникайте повторюваних чисел (111, 222 тощо)");
+        }
+        
+        if (hasNameNumberPattern) {
+            result.score = Math.max(0, result.score - 1);
+            if (!result.feedback.warning) {
+                result.feedback.warning = "Пароль містить типовий шаблон 'ім'я + цифри'";
+            }
+            result.feedback.suggestions.push("Не використовуйте комбінацію імені з цифрами");
+        }
+        
+        // Максимальна оцінка обмежена, якщо не виконуються всі вимоги
+        if (!allBasicRequirementsMet) {
+            result.score = Math.min(result.score, 2); // Обмежити до "Середній" якщо не всі вимоги виконані
+            if (!result.feedback.warning) {
+                result.feedback.warning = "Пароль не відповідає всім вимогам безпеки";
+            }
+            result.feedback.suggestions.push("Виконайте всі вимоги для створення дійсно надійного пароля");
+        }
+        
+        // Чи пароль містить тільки літери або тільки цифри?
+        if (/^[A-Za-zА-Яа-яІЇЄҐіїєґ]+$/.test(password) || /^[0-9]+$/.test(password)) {
+            result.score = Math.min(result.score, 1); // Обмежити до "Слабкий"
+            if (!result.feedback.warning) {
+                result.feedback.warning = "Пароль містить тільки літери або тільки цифри";
+            }
+            result.feedback.suggestions.push("Додайте різні типи символів до пароля");
+        }
     }
     
     // Оновлення індикатора надійності
@@ -128,26 +209,27 @@ function updateStrengthMeter(score) {
     let strengthColor = '';
     let strengthLabel = '';
     
+    // Модифікована шкала для кращого розуміння
     switch (score) {
         case 0:
             strengthLabel = 'Дуже слабкий';
-            strengthColor = '#777';
+            strengthColor = '#ff4d4d'; // Яскраво-червоний
             break;
         case 1:
             strengthLabel = 'Слабкий';
-            strengthColor = '#777';
+            strengthColor = '#ff9966'; // Оранжевий
             break;
         case 2:
             strengthLabel = 'Середній';
-            strengthColor = '#444';
+            strengthColor = '#ffcc00'; // Жовтий
             break;
         case 3:
             strengthLabel = 'Надійний';
-            strengthColor = '#222';
+            strengthColor = '#66cc66'; // Зелений
             break;
         case 4:
             strengthLabel = 'Дуже надійний';
-            strengthColor = '#000';
+            strengthColor = '#009933'; // Темно-зелений
             break;
     }
     
@@ -155,17 +237,19 @@ function updateStrengthMeter(score) {
     if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
         switch (score) {
             case 0:
+                strengthColor = '#ff4d4d'; // Червоний
+                break;
             case 1:
-                strengthColor = '#666';
+                strengthColor = '#ff9966'; // Оранжевий
                 break;
             case 2:
-                strengthColor = '#888';
+                strengthColor = '#ffcc00'; // Жовтий
                 break;
             case 3:
-                strengthColor = '#bbb';
+                strengthColor = '#66cc66'; // Зелений
                 break;
             case 4:
-                strengthColor = '#fff';
+                strengthColor = '#00cc66'; // Яскраво-зелений
                 break;
         }
     }
@@ -175,6 +259,7 @@ function updateStrengthMeter(score) {
     strengthText.textContent = 'Сила пароля: ' + strengthLabel;
     strengthText.className = ''; // Скидання класів
     
+    // Додати відповідний клас залежно від оцінки
     if (score <= 1) {
         strengthText.classList.add('weak');
     } else if (score === 2) {
@@ -233,7 +318,13 @@ function translateWarning(warning) {
         'This is similar to a commonly used password': 'Це схоже на часто використовуваний пароль',
         'A word by itself is easy to guess': 'Окреме слово легко вгадати',
         'Names and surnames by themselves are easy to guess': 'Імена та прізвища самі по собі легко вгадати',
-        'Common names and surnames are easy to guess': 'Поширені імена та прізвища легко вгадати'
+        'Common names and surnames are easy to guess': 'Поширені імена та прізвища легко вгадати',
+        'Пароль містить розпізнаване ім\'я': 'Пароль містить розпізнаване ім\'я',
+        'Пароль містить послідовність чисел': 'Пароль містить послідовність чисел',
+        'Пароль містить повторювані числа': 'Пароль містить повторювані числа',
+        'Пароль містить типовий шаблон \'ім\'я + цифри\'': 'Пароль містить типовий шаблон \'ім\'я + цифри\'',
+        'Пароль не відповідає всім вимогам безпеки': 'Пароль не відповідає всім вимогам безпеки',
+        'Пароль містить тільки літери або тільки цифри': 'Пароль містить тільки літери або тільки цифри'
     };
     
     return translations[warning] || warning;
@@ -253,7 +344,13 @@ function translateSuggestion(suggestion) {
         'Capitalization doesn\'t help very much': 'Використання великих літер не дуже допомагає',
         'All-uppercase is almost as easy to guess as all-lowercase': 'Всі великі літери майже так само легко вгадати, як і всі малі',
         'Reversed words aren\'t much harder to guess': 'Зворотні слова ненабагато складніше вгадати',
-        'Predictable substitutions like \'@\' instead of \'a\' don\'t help very much': 'Передбачувані заміни, такі як \'@\' замість \'a\', не дуже допомагають'
+        'Predictable substitutions like \'@\' instead of \'a\' don\'t help very much': 'Передбачувані заміни, такі як \'@\' замість \'a\', не дуже допомагають',
+        'Уникайте використання імен у паролях': 'Уникайте використання імен у паролях',
+        'Уникайте послідовних чисел (123, 789 тощо)': 'Уникайте послідовних чисел (123, 789 тощо)',
+        'Уникайте повторюваних чисел (111, 222 тощо)': 'Уникайте повторюваних чисел (111, 222 тощо)',
+        'Не використовуйте комбінацію імені з цифрами': 'Не використовуйте комбінацію імені з цифрами',
+        'Виконайте всі вимоги для створення дійсно надійного пароля': 'Виконайте всі вимоги для створення дійсно надійного пароля',
+        'Додайте різні типи символів до пароля': 'Додайте різні типи символів до пароля'
     };
     
     return translations[suggestion] || suggestion;
